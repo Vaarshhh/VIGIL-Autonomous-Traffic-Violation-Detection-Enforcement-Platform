@@ -1,0 +1,57 @@
+{
+  "_comment": "This file is the single source of truth for which violation classes the loaded model can ACTUALLY detect. Do not add an entry to 'classes' unless you have a model genuinely trained on that class — the detector will only ever report classes listed here. To activate a class: train it, find its index in your dataset's data.yaml under 'names', then add an entry like '\"1\": {\"label\": \"no_helmet\", ...}' to 'classes' below using that index as the key.",
+
+  "model_path": "models/best.pt",
+  "model_status": "LIVE_TRAINED_MODEL",
+
+  "classes": {
+    "1": {
+      "label": "no_helmet",
+      "section": "Section 129 of MV Act 1988",
+      "fine_inr": 1000,
+      "severity_weight": 0.85,
+      "trained_metrics": {
+        "precision": 0.873,
+        "recall": 0.791,
+        "mAP50": 0.893,
+        "mAP50_95": 0.512,
+        "note": "From actual training run, epoch 32 (best.pt), 50-epoch run with early stopping at 47. Real measured numbers, not estimated."
+      }
+    }
+  },
+
+  "pending_classes": [
+    {
+      "label": "no_seatbelt",
+      "section": "Section 138(3) of MV Act 1988",
+      "fine_inr": 1000,
+      "severity_weight": 0.80,
+      "status": "not_started",
+      "note": "Trainable with a labeled seatbelt dataset. Single still-frame detection is sufficient."
+    },
+    {
+      "label": "illegal_parking",
+      "section": "Section 122 of MV Act 1988",
+      "fine_inr": 500,
+      "severity_weight": 0.50,
+      "status": "not_started",
+      "note": "Needs a no-parking-zone geofence/mask per camera plus a stationary-vehicle time threshold — not a single-frame classification problem."
+    },
+    {
+      "label": "stop_line_violation",
+      "section": "Section 119 of MV Act 1988",
+      "fine_inr": 1000,
+      "severity_weight": 0.60,
+      "status": "requires_signal_context",
+      "note": "Requires calibrated stop-line geometry plus signal state. Cannot be honestly detected from a single still frame alone."
+    },
+    {
+      "label": "red_light_violation",
+      "section": "Section 119 of MV Act 1988",
+      "fine_inr": 5000,
+      "severity_weight": 0.90,
+      "status": "requires_signal_context",
+      "note": "Requires a synchronized signal-state feed plus stop-line geometry. Cannot be honestly detected from a single still frame alone."
+    }
+  ]
+}

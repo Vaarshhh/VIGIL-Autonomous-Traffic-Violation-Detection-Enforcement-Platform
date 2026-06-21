@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIGIL — Traffic Violation Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#0B0E14;
+    --bg-panel:#11161F;
+    --bg-panel-raised:#161C28;
+    --border:#222938;
+    --accent-amber:#FFB020;
+    --accent-red:#E63946;
+    --accent-teal:#2DD4BF;
+    --text-primary:#E8EAED;
+    --text-muted:#7E8898;
+    --font-display:'Oswald',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg-base);
+    color:var(--text-primary);
+    font-family:var(--font-body);
+    min-height:100vh;
+  }
+  a{color:inherit;}
+
+  /* ── header ── */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 28px;
+    border-bottom:1px solid var(--border);
+    background:var(--bg-panel);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:4px;
+    background:linear-gradient(135deg,var(--accent-amber),var(--accent-red));
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:700;font-size:15px;color:#0B0E14;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:20px;
+    letter-spacing:0.04em;
+    margin:0;
+  }
+  .brand p{margin:0;font-size:12px;color:var(--text-muted);letter-spacing:0.02em;}
+  #status-badge{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    padding:6px 12px;
+    border-radius:3px;
+    border:1px solid var(--border);
+    color:var(--text-muted);
+  }
+  #status-badge.demo{color:var(--accent-amber);border-color:rgba(255,176,32,0.3);background:rgba(255,176,32,0.06);}
+  #status-badge.live{color:var(--accent-teal);border-color:rgba(45,212,191,0.3);background:rgba(45,212,191,0.06);}
+
+  /* ── layout ── */
+  main{
+    display:grid;
+    grid-template-columns:1.1fr 0.9fr;
+    gap:20px;
+    padding:24px 28px;
+    max-width:1320px;
+    margin:0 auto;
+  }
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:18px;
+  }
+  .panel h2{
+    font-family:var(--font-display);
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin:0 0 14px 0;
+  }
+
+  /* ── feed / upload panel ── */
+  .feed-frame{
+    position:relative;
+    width:100%;
+    aspect-ratio:4/3;
+    background:#05070B;
+    border:1px solid var(--border);
+    border-radius:4px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .feed-frame img{width:100%;height:100%;object-fit:contain;}
+  .feed-empty{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:20px;
+  }
+  .feed-empty svg{margin-bottom:10px;opacity:0.5;}
+
+  .scanline{
+    position:absolute;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent-teal),transparent);
+    box-shadow:0 0 8px var(--accent-teal);
+    animation:sweep 1.4s linear infinite;
+    display:none;
+  }
+  .scanning .scanline{display:block;}
+  @keyframes sweep{ 0%{top:0;} 100%{top:100%;} }
+
+  .upload-row{display:flex;gap:10px;margin-top:14px;}
+  input[type=file]{
+    flex:1;
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--text-muted);
+    border:1px dashed var(--border);
+    border-radius:4px;
+    padding:10px;
+    background:var(--bg-panel-raised);
+  }
+  button{
+    font-family:var(--font-display);
+    font-weight:600;
+    letter-spacing:0.04em;
+    font-size:13px;
+    border:none;
+    border-radius:4px;
+    padding:0 22px;
+    cursor:pointer;
+    background:var(--accent-amber);
+    color:#0B0E14;
+    transition:filter 0.15s ease;
+  }
+  button:hover:not(:disabled){filter:brightness(1.1);}
+  button:disabled{background:var(--border);color:var(--text-muted);cursor:not-allowed;}
+
+  /* ── pipeline steps ── */
+  .pipeline{display:flex;gap:6px;margin-top:16px;}
+  .step{
+    flex:1;
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 10px;
+    background:var(--bg-panel-raised);
+  }
+  .step .n{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+  .step .label{font-size:11px;margin-top:2px;color:var(--text-muted);letter-spacing:0.02em;}
+  .step.active{border-color:var(--accent-amber);}
+  .step.active .n,.step.active .label{color:var(--accent-amber);}
+  .step.done{border-color:var(--accent-teal);}
+  .step.done .n,.step.done .label{color:var(--accent-teal);}
+
+  /* ── results panel ── */
+  .meta-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:14px;font-family:var(--font-mono);}
+  .detection{
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    background:var(--bg-panel-raised);
+  }
+  .detection-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .detection-label{font-family:var(--font-display);font-size:14px;letter-spacing:0.03em;}
+  .detection-plate{font-family:var(--font-mono);font-size:12px;background:#0B0E14;border:1px solid var(--border);border-radius:3px;padding:2px 8px;color:var(--accent-teal);}
+  .bar-track{height:5px;background:#0B0E14;border-radius:3px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:3px;}
+  .detection-foot{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:5px;}
+
+  .empty-state{
+    text-align:center;
+    padding:36px 10px;
+    color:var(--text-muted);
+    font-size:13px;
+  }
+  .empty-state .glyph{font-size:28px;color:var(--accent-teal);margin-bottom:8px;}
+
+  /* ── challan card ── */
+  .challan-card{
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:16px;
+    margin-top:6px;
+    background:var(--bg-panel-raised);
+  }
+  .challan-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .challan-id{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+  .risk-badge{font-family:var(--font-mono);font-size:11px;padding:3px 9px;border-radius:3px;letter-spacing:0.04em;}
+  .risk-CRITICAL{background:rgba(230,57,70,0.15);color:var(--accent-red);border:1px solid rgba(230,57,70,0.4);}
+  .risk-HIGH{background:rgba(255,176,32,0.15);color:var(--accent-amber);border:1px solid rgba(255,176,32,0.4);}
+  .risk-MEDIUM{background:rgba(255,176,32,0.08);color:#d9a441;border:1px solid rgba(255,176,32,0.25);}
+  .risk-LOW{background:rgba(45,212,191,0.1);color:var(--accent-teal);border:1px solid rgba(45,212,191,0.3);}
+  .challan-plate{font-family:var(--font-mono);font-size:22px;letter-spacing:0.08em;margin:8px 0;}
+  .challan-items{font-size:12px;color:var(--text-muted);margin:10px 0;}
+  .challan-items li{margin-bottom:4px;}
+  .challan-fine{font-family:var(--font-display);font-size:26px;color:var(--accent-amber);}
+  .challan-loc{font-size:11px;color:var(--text-muted);margin-top:8px;font-family:var(--font-mono);}
+
+  /* ── recent activity ── */
+  #recent-list{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+  #recent-list .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);}
+  #recent-list .row:last-child{border-bottom:none;}
+
+  footer{text-align:center;color:var(--text-muted);font-size:11px;padding:20px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">V</div>
+    <div>
+      <h1>VIGIL</h1>
+      <p>Automated Traffic Violation Detection &amp; Challan Generation</p>
+    </div>
+  </div>
+  <div id="status-badge">CHECKING SYSTEM…</div>
+</header>
+
+<main>
+  <!-- LEFT: feed + pipeline -->
+  <section class="panel">
+    <h2>Camera Frame</h2>
+    <div class="feed-frame" id="feed-frame">
+      <div class="feed-empty" id="feed-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>
+        <div>Upload a traffic camera frame to begin</div>
+      </div>
+      <img id="feed-img" style="display:none;" />
+      <div class="scanline"></div>
+    </div>
+
+    <div class="upload-row">
+      <input type="file" id="file-input" accept="image/jpeg,image/png" />
+      <button id="analyze-btn" disabled>Analyze</button>
+    </div>
+
+    <div class="pipeline">
+      <div class="step" data-step="1"><div class="n">01</div><div class="label">Preprocess</div></div>
+      <div class="step" data-step="2"><div class="n">02</div><div class="label">Detect</div></div>
+      <div class="step" data-step="3"><div class="n">03</div><div class="label">Plate OCR</div></div>
+      <div class="step" data-step="4"><div class="n">04</div><div class="label">Challan</div></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: results -->
+  <section class="panel">
+    <h2>Detections</h2>
+    <div class="meta-row">
+      <span id="meta-time">—</span>
+      <span id="meta-proc">—</span>
+    </div>
+    <div id="detections-list">
+      <div class="empty-state">
+        <div class="glyph">◎</div>
+        No frame analyzed yet
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM LEFT: challan -->
+  <section class="panel" style="grid-column:1;">
+    <h2>Generated Challan</h2>
+    <div id="challan-area">
+      <div class="empty-state">
+        <div class="glyph">⌬</div>
+        A challan will appear here once a violation is confirmed
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM RIGHT: recent activity -->
+  <section class="panel" style="grid-column:2;">
+    <h2>Recent Activity (this session)</h2>
+    <div id="recent-list">
+      <div class="empty-state">No challans issued yet</div>
+    </div>
+  </section>
+</main>
+
+<footer>VIGIL Prototype — Flipkart GRiD · Computer Vision for Traffic Violation Detection</footer>
+
+<script>
+const feedFrame   = document.getElementById('feed-frame');
+const feedEmpty   = document.getElementById('feed-empty');
+const feedImg     = document.getElementById('feed-img');
+const fileInput   = document.getElementById('file-input');
+const analyzeBtn  = document.getElementById('analyze-btn');
+const statusBadge = document.getElementById('status-badge');
+const detectionsList = document.getElementById('detections-list');
+const challanArea = document.getElementById('challan-area');
+const recentList  = document.getElementById('recent-list');
+const metaTime    = document.getElementById('meta-time');
+const metaProc    = document.getElementById('meta-proc');
+
+let selectedFile = null;
+
+// ── system status ──
+fetch('/health').then(r => r.json()).then(h => {
+  if (h.demo_mode) {
+    statusBadge.textContent = 'DEMO MODE · STOCK WEIGHTS';
+    statusBadge.className = 'demo';
+  } else {
+    statusBadge.textContent = `MODEL LIVE · ${h.model_path}`;
+    statusBadge.className = 'live';
+  }
+}).catch(() => {
+  statusBadge.textContent = 'API UNREACHABLE';
+});
+
+// ── load persistent recent activity (survives restarts — backed by SQLite) ──
+fetch('/violations/recent?limit=10').then(r => r.json()).then(data => {
+  const rows = data.results || [];
+  if (rows.length === 0) return;
+  recentList.innerHTML = '';
+  rows.forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span>${v.plate_number || 'UNREAD'} · ${v.violation_type.replace(/_/g,' ')}</span><span>₹${(v.fine_inr||0).toLocaleString('en-IN')}</span>`;
+    recentList.appendChild(row);
+  });
+}).catch(() => {});
+
+// ── file selection ──
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  selectedFile = file;
+  const url = URL.createObjectURL(file);
+  feedImg.src = url;
+  feedImg.style.display = 'block';
+  feedEmpty.style.display = 'none';
+  analyzeBtn.disabled = false;
+});
+
+function setStep(n, state) {
+  const el = document.querySelector(`.step[data-step="${n}"]`);
+  el.classList.remove('active', 'done');
+  if (state) el.classList.add(state);
+}
+function resetSteps() {
+  for (let i = 1; i <= 4; i++) setStep(i, null);
+}
+
+function severityColor(sev) {
+  if (sev >= 0.85) return 'var(--accent-red)';
+  if (sev >= 0.6) return 'var(--accent-amber)';
+  return 'var(--accent-teal)';
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  analyzeBtn.disabled = true;
+  feedFrame.classList.add('scanning');
+  resetSteps();
+  setStep(1, 'active');
+
+  const stepTimers = [
+    setTimeout(() => { setStep(1, 'done'); setStep(2, 'active'); }, 350),
+    setTimeout(() => { setStep(2, 'done'); setStep(3, 'active'); }, 800),
+    setTimeout(() => { setStep(3, 'done'); setStep(4, 'active'); }, 1200),
+  ];
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+
+  try {
+    const res = await fetch('/analyze/image', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+
+    stepTimers.forEach(clearTimeout);
+    for (let i = 1; i <= 4; i++) setStep(i, 'done');
+    feedFrame.classList.remove('scanning');
+
+    if (data.annotated_image) {
+      feedImg.src = 'data:image/jpeg;base64,' + data.annotated_image;
+    }
+
+    renderResult(data);
+  } catch (err) {
+    stepTimers.forEach(clearTimeout);
+    feedFrame.classList.remove('scanning');
+    resetSteps();
+    detectionsList.innerHTML = `<div class="empty-state">Couldn't process this frame — check the API is running and try again.<br><span style="color:var(--accent-red)">${err.message}</span></div>`;
+  } finally {
+    analyzeBtn.disabled = false;
+  }
+});
+
+function renderResult(data) {
+  const r = data.result;
+  metaTime.textContent = new Date(r.timestamp * 1000).toLocaleTimeString();
+  metaProc.textContent = `${r.proc_ms} ms`;
+
+  if (r.detections.length === 0) {
+    detectionsList.innerHTML = `<div class="empty-state"><div class="glyph">✓</div>No violations detected in this frame</div>`;
+  } else {
+    detectionsList.innerHTML = r.detections.map(d => `
+      <div class="detection">
+        <div class="detection-top">
+          <span class="detection-label">${d.label.replace(/_/g, ' ').toUpperCase()}</span>
+          <span class="detection-plate">${d.plate ? d.plate + (d.plate_confidence ? ` (${Math.round(d.plate_confidence*100)}%)` : '') : 'PLATE UNREAD'}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.confidence*100)}%;background:${severityColor(d.severity)}"></div></div>
+        <div class="detection-foot">
+          <span>confidence ${(d.confidence*100).toFixed(0)}%</span>
+          <span>severity ${d.severity.toFixed(2)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  if (r.vehicles && r.vehicles.length > 0) {
+    const counts = {};
+    r.vehicles.forEach(v => {
+      const key = (v.role && v.category === 'person') ? v.role : v.category;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const summary = Object.entries(counts).map(([k, n]) => `${n} ${k}${n > 1 ? 's' : ''}`).join(' · ');
+    detectionsList.innerHTML += `<div class="meta-row" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+      <span>Vehicles/people detected</span><span>${summary}</span>
+    </div>`;
+  }
+
+  if (data.challan) {
+    const c = data.challan;
+    challanArea.innerHTML = `
+      <div class="challan-card">
+        <div class="challan-head">
+          <span class="challan-id">${c.challan_id}</span>
+          <span class="risk-badge risk-${c.risk_level}">${c.risk_level} RISK</span>
+        </div>
+        <div class="challan-plate">${c.plate_number || 'PLATE UNREAD'}</div>
+        <ul class="challan-items">
+          ${c.items.map(i => `<li>${i.violation.replace(/_/g,' ')} — ₹${i.fine_inr.toLocaleString('en-IN')} (${i.section})</li>`).join('')}
+        </ul>
+        <div class="challan-fine">₹${c.total_fine.toLocaleString('en-IN')}</div>
+        <div class="challan-loc">${c.camera_id} · ${c.location} · ${c.timestamp}</div>
+      </div>
+    `;
+    prependRecent(c);
+  } else {
+    challanArea.innerHTML = `<div class="empty-state"><div class="glyph">⌬</div>A challan will appear here once a violation is confirmed</div>`;
+  }
+}
+
+function prependRecent(c) {
+  if (recentList.querySelector('.empty-state')) recentList.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<span>${c.plate_number || 'UNREAD'} · ${c.risk_level}</span><span>₹${c.total_fine.toLocaleString('en-IN')}</span>`;
+  recentList.prepend(row);
+}
+</script>
+</body>
+</html>
